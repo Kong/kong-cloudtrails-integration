@@ -1,0 +1,48 @@
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": [
+                "cloudtrail:CreateEventDataStore",
+                "cloudtrail:UpdateEventDataStore",
+                "cloudtrail:DeleteEventDataStore",
+                "cloudtrail:ListEventDataStores",
+                "cloudtrail:RestoreEventDataStore",
+                "cloudtrail:GetEventDataStore",
+                "cloudtrail:StartQuery",
+                "cloudtrail:ListQueries",
+                "cloudtrail:CancelQuery",
+                "cloudtrail:DescribeQuery",
+                "cloudtrail:GetQueryResults"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Effect": "Allow",
+            "Action": "cloudtrail-data:PutAuditEvents",
+            "Resource": "*"
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "iam:ListRoles",
+                "iam:GetRolePolicy",
+                "iam:GetUser"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "iam:PassRole"
+            ],
+            "Resource": "*",
+            "Condition": {
+                "StringEquals": {
+                    "iam:PassedToService": "cloudtrail.amazonaws.com"
+                }
+            }
+        }
+    ]
+}

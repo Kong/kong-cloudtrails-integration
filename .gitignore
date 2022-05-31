@@ -1,0 +1,11 @@
+kong-cloudtrails-integration
+aws-sdk-go@v0.0.0-unpublished
+.vscode/
+*.pdf
+.terraform
+.terraform.lock.hcl
+output.tf
+terraform.tfstate 
+terraform.tfstate.backup
+terraform.tfvars
+plan
