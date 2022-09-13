@@ -31,18 +31,28 @@ type KongData struct {
 }
 
 type OpenAuditEvent struct {
-	EventVersion        string                 `json:"eventVersion"`
+	// Metadata  Metadata  `json:"metadata,omitempty"`
+	EventData EventData `json:"eventData"`
+}
+
+type Metadata struct {
+	IngestionTime string `json:"ingestionTime"`
+	ChannelArn    string `json:"channelArn"`
+}
+
+type EventData struct {
+	Version             string                 `json:"version"`
 	UserIdentity        UserIdentity           `json:"userIdentity"`
-	EventTime           string                 `json:"eventTime"`
+	UserAgent           string                 `json:"userAgent,omitempty"`
 	EventSource         string                 `json:"eventSource"`
 	EventName           string                 `json:"eventName"`
+	EventTime           string                 `json:"eventTime"`
+	UID                 string                 `json:"UID"`
 	RequestParameters   map[string]interface{} `json:"requestParameters,omitempty"`
 	ResponseElements    string                 `json:"responseElements,omitempty"`
 	SourceIPAddress     string                 `json:"sourceIPAddress,omitempty"`
-	UserAgent           string                 `json:"userAgent,omitempty"`
 	AdditionalEventData AdditionalEventData    `json:"additionalEventData,omitempty"`
 	RecipientAccountId  string                 `json:"recipientAccountId"`
-	UUID                string                 `json:"UUID"`
 }
 
 type UserIdentity struct {

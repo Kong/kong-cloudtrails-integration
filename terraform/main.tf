@@ -7,22 +7,10 @@ terraform {
   }
 }
 
-provider "aws" {}
-
-
-resource "aws_cloudtrail_event_data_store" "event_store" {
-  name             = "${var.resource_name}-event-store"
-  retention_period = var.cloudtrail_retention
-  advanced_event_selector {
-    name = "Select All Open Audit Events"
-
-    field_selector {
-      field  = "eventCategory"
-      equals = ["Custom"]
-    }
-  }
-  tags = var.resource_tags
+provider "aws" {
+  region = var.aws_region
 }
+
 
 resource "aws_elasticache_subnet_group" "el_cache_subnet_group" {
   name       = "${var.resource_name}-cache-subnet"

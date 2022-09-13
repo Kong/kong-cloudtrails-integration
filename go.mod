@@ -4,12 +4,12 @@ go 1.18
 
 require (
 	github.com/aws/aws-lambda-go v1.32.0
-	github.com/aws/aws-sdk-go v0.0.0-unpublished
+	github.com/aws/aws-sdk-go v1.44.94
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/go-resty/resty/v2 v2.7.0
 )
 
-replace github.com/aws/aws-sdk-go v0.0.0-unpublished => ./aws-sdk-go@v0.0.0-unpublished
+replace github.com/aws/aws-sdk-go v1.44.94 => ./aws-sdk-go@v0.1.0-unpublished
 
 require (
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect

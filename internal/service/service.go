@@ -31,7 +31,7 @@ func HandleLogs() error {
 		al.KongData = kongInfo
 
 		al = removeDups(al, ri)
-		err = c.AC.PutAuditLogs(al, c.GetAWsARN())
+		err = c.AC.PutAuditLogs(al, c.GetFuncArn(), c.GetChannelArn())
 		if err != nil {
 			log.Infof("Error Publishing Logs to Cloudtrails: %s duplicates still recorded in ElastiCache", err.Error())
 		}

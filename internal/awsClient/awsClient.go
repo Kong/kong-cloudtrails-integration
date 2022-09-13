@@ -9,7 +9,7 @@ import (
 	"github.com/Kong/kong-cloudtrails-integration/model"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/cloudtraildataservice"
+	"github.com/aws/aws-sdk-go/service/cloudtraildata"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -29,14 +29,15 @@ func New(region string) *AWSClient {
 	return &ac
 }
 
-func (ac *AWSClient) PutAuditLogs(al *model.AuditLogs, arn string) error {
-	ctd := cloudtraildataservice.New(ac.Sess)
+func (ac *AWSClient) PutAuditLogs(al *model.AuditLogs, functionArn string, channelArn string) error {
+	ctd := cloudtraildata.New(ac.Sess)
 
-	input := cloudtraildataservice.PutAuditEventsInput{
-		AuditEvents: []*cloudtraildataservice.AuditEvent{},
+	input := cloudtraildata.PutAuditEventsInput{
+		ChannelArn:  aws.String(channelArn),
+		AuditEvents: []*cloudtraildata.AuditEvent{},
 	}
 
-	awsAccountId := createRecipientId(arn)
+	awsAccountId := createRecipientId(functionArn)
 
 	for _, v := range al.Logs {
 
@@ -53,6 +54,12 @@ func (ac *AWSClient) PutAuditLogs(al *model.AuditLogs, arn string) error {
 	}
 
 	resp, err := ctd.PutAuditEvents(&input)
+
+	if len(resp.Failed) > 0 {
+		log.Error(resp.Failed)
+		return errors.New("failed requests submitting to cloudtrails")
+	}
+
 	if err != nil {
 		return err
 	}
@@ -65,7 +72,7 @@ func (ac *AWSClient) PutAuditLogs(al *model.AuditLogs, arn string) error {
 	return nil
 }
 
-func (ac *AWSClient) transformAuditEvent(ar *model.AuditRequest, kongInfo model.KongData, awsAccountId string) *cloudtraildataservice.AuditEvent {
+func (ac *AWSClient) transformAuditEvent(ar *model.AuditRequest, kongInfo model.KongData, awsAccountId string) *cloudtraildata.AuditEvent {
 	if ar == nil {
 		return nil
 	}
@@ -77,13 +84,16 @@ func (ac *AWSClient) transformAuditEvent(ar *model.AuditRequest, kongInfo model.
 	rp := createRequestParameters(ar.Payload, qp)
 	ui := createUserIdentity(ar.Rbac_user_id)
 
-	eventData := model.OpenAuditEvent{
-		EventVersion:      kongInfo.KongVersion,
-		EventSource:       "kong-gateway",
-		EventTime:         timestamp,
-		EventName:         eventName,
-		RequestParameters: rp,
-		SourceIPAddress:   ar.Client_ip,
+	eventData := model.EventData{
+		Version:            kongInfo.KongVersion,
+		UserIdentity:       ui,
+		EventSource:        "KongGatewayEnterprise",
+		EventName:          eventName,
+		EventTime:          timestamp,
+		UID:                ar.Request_id,
+		RequestParameters:  rp,
+		SourceIPAddress:    ar.Client_ip,
+		RecipientAccountId: awsAccountId,
 		AdditionalEventData: model.AdditionalEventData{
 			Method:       ar.Method,
 			Status:       ar.Status,
@@ -92,9 +102,6 @@ func (ac *AWSClient) transformAuditEvent(ar *model.AuditRequest, kongInfo model.
 			Workspace:    ar.Workspace,
 			KongHostname: kongInfo.KongHostname,
 		},
-		RecipientAccountId: awsAccountId,
-		UUID:               ar.Request_id,
-		UserIdentity:       ui,
 	}
 
 	ed, err := json.Marshal(&eventData)
@@ -104,7 +111,7 @@ func (ac *AWSClient) transformAuditEvent(ar *model.AuditRequest, kongInfo model.
 		return nil
 	}
 
-	return &cloudtraildataservice.AuditEvent{
+	return &cloudtraildata.AuditEvent{
 		Id:        aws.String(id),
 		EventData: aws.String(string(ed)),
 	}
@@ -122,8 +129,8 @@ func splitEventNameQueryParameters(path string) (eventName string, qp string) {
 	return eventName, qp
 }
 
-func createRecipientId(arn string) string {
-	s := strings.Split(arn, ":")
+func createRecipientId(functionArn string) string {
+	s := strings.Split(functionArn, ":")
 
 	return s[4]
 }

@@ -12,6 +12,11 @@ variable "resource_tags" {
   }
 }
 
+variable "aws_region" {
+  description = "Name of the aws region to deploy resoures into"
+  type        = string
+}
+
 variable "existing_vpc" {
   description = "Name/Id of Existing VPC to deploy resources into"
   type        = string
@@ -27,19 +32,15 @@ variable "security_group" {
   type        = string
 }
 
-variable "cloudtrail_retention" {
-  description = "Cloud Trail Event Data Store Retention Policy"
-  type        = number
-  default     = 90
-}
-
 variable "lambda_env" {
   description = "Environment Variable to Assign the Lamba Function"
   type = object({
     KONG_ADMIN_API   = string
     KONG_SUPERADMIN  = bool
     KONG_ADMIN_TOKEN = string
+    KONG_ROOT_CA     = string
     REDIS_DB         = string
+    CHANNEL_ARN      = string
   })
   sensitive = true
 }

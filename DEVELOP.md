@@ -2,13 +2,13 @@
 
 High Level this guide walks through:
 
-* Setting up Kong with audit logs enabled
+* Setting up Kong with audit logs enabled.
 
-* Setting up AWS Infrastructure: ElastiCache, ECR Private Repository, VPC requirements for the Lambda Function
+* Setting up AWS Infrastructure: ElastiCache, ECR Private Repository, VPC requirements for the Lambda Function.
 
-* Building and running the AWS Lamdba code locally
+* Building and running the AWS Lamdba code locally.
 
-* Pushing and configuring the Lambda Function in AWS
+* Pushing and configuring the Lambda Function in AWS.
 
 ## Setup Infrastructure on AWS - Kong + Kong DB (Docker), AWS ElastiCache, CloudTrails Event Store
 
@@ -139,12 +139,6 @@ aws elasticache create-cache-cluster \
 
 Store the Endpoint on the cluster, this is added to the Lambda ENV variables as REDIS_HOST
 
-### Create the CloudTrails Event Store
-
-```shell
-aws cloudtrail create-event-data-store --name partner-engin-data-store --retention-period 90 --advanced-event-selectors '[ { "Name": "Select all open audit events", "FieldSelectors": [ { "Field": "eventCategory", "Equals": [ "Custom" ] } ] } ]'
-```
-
 # Build and Test AWS Lambda Function Locally
 
 ## Build the docker image
@@ -170,30 +164,12 @@ curl -XPOST `"http://localhost:9000/2015-03-31/functions/function/invocations" -
 
 # Build and Test On AWS Lambda Function on AWS
 
-## Creating ECR Private Registry
+## Build the Lambda Image
+
+Build the image and host in your preferred registry: AWS ECR, etc.
 
 ```shell
-aws ecr create-repository --repository-name partner-eng/kong-cloudtrails-integration --region us-east-1 --image-scanning-configuration scanOnPush=true --image-tag-mutability MUTABLE
-```
-
-Authenicate to ECR registry, you go to ecr repo and locate View Push Commands to get the correct command:
-
-```shell
-aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin <aws-account>.dkr.ecr.us-east-1.amazonaws.com
-```
-
-## Build and Push AWS Lambda Image
-
-```shell
-docker build -t partner-eng/kong-cloudtrails-integration .
-```
-
-```shell
-docker tag partner-eng/kong-cloudtrails-integration:latest <aws-account>.dkr.ecr.us-east-1.amazonaws.com/partner-eng/kong-cloudtrails-integration:latest
-```
-
-```shell
-docker push <aws-account>.dkr.ecr.us-east-1.amazonaws.com/partner-eng/kong-cloudtrails-integration:latest
+docker build -t kong-cloudtrails-integration .
 ```
 
 ### Configure AWS Lambda Function
@@ -218,17 +194,10 @@ KONG_SUPERADMIN true
 KONG_ADMIN_TOKEN test
 REDIS_HOST kong-cloudtrails-integration.klcj8d.ng.0001.use1.cache.amazonaws.com:6379
 REDIS_DB 0
-REGION us-east-1
+CHANNEL_ARN arn:aws:cloudtrail:us-east-1:123456789651:channel/07441ab6-c4a1-4c8a-943d-a2f0c50c8a76
 ```
 
-4. Configure Lamba Function to Run in the VPC of the ElastiCache Cluster. Requirements for this configuration:
-
-* Deploy the function in a private subnet
-
-* the vpc must have a nat gateway to reach the gateway via the public hostname
-
-5. Schedule lamda function to run every hour via CloudWatch: [Tutorial: Schedule AWS Lambda Functions Using CloudWatch Events](https://docs.aws.amazon.com/AmazonCloudWatch/latest/events/RunLambdaSchedule.html)
-
+4. Schedule lamda function to run every hour via CloudWatch: [Tutorial: Schedule AWS Lambda Functions Using CloudWatch Events](https://docs.aws.amazon.com/AmazonCloudWatch/latest/events/RunLambdaSchedule.html)
 
 # References
 

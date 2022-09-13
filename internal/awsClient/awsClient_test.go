@@ -7,8 +7,9 @@ import (
 
 	"github.com/Kong/kong-cloudtrails-integration/model"
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/cloudtraildataservice"
+	"github.com/aws/aws-sdk-go/service/cloudtraildata"
 	"github.com/jarcoal/httpmock"
 	"github.com/stretchr/testify/assert"
 )
@@ -37,9 +38,9 @@ func TestTransformAuditEvent(t *testing.T) {
 	awsAccountId := "123456789"
 	ac := &AWSClient{}
 
-	expected := &cloudtraildataservice.AuditEvent{
+	expected := &cloudtraildata.AuditEvent{
 		Id:        aws.String("0bAf1b0nfOZsMSEByhhgn8FHdra7DjRp"),
-		EventData: aws.String("{\"eventVersion\":\"2.8.1.1-enterprise-edition\",\"userIdentity\":{\"type\":\"\",\"principalId\":\"anonymous\",\"details\":{\"RBAC\":\"Anonymous User on Kong Gateway: Please Enable RBAC on Kong Gateway\"}},\"eventTime\":\"2022-06-13T12:25:34Z\",\"eventSource\":\"kong-gateway\",\"eventName\":\"OPTIONSauth\",\"requestParameters\":{\"queryParameters\":\"session_logout=true\"},\"sourceIPAddress\":\"172.18.0.1\",\"additionalEventData\":{\"method\":\"OPTIONS\",\"status\":200,\"signature\":\"\",\"ttl\":2504744,\"workspace\":\"0c21a8bb-0e63-4cf1-8b98-7038e1f25468\",\"konghostname\":\"http://kong-gateway.com\"},\"recipientAccountId\":\"123456789\",\"UUID\":\"0bAf1b0nfOZsMSEByhhgn8FHdra7DjRp\"}"),
+		EventData: aws.String("{\"version\":\"2.8.1.1-enterprise-edition\",\"userIdentity\":{\"type\":\"\",\"principalId\":\"anonymous\",\"details\":{\"RBAC\":\"Anonymous User on Kong Gateway: Please Enable RBAC on Kong Gateway\"}},\"eventSource\":\"KongGatewayEnterprise\",\"eventName\":\"OPTIONSauth\",\"eventTime\":\"2022-06-13T12:25:34Z\",\"UID\":\"0bAf1b0nfOZsMSEByhhgn8FHdra7DjRp\",\"requestParameters\":{\"queryParameters\":\"session_logout=true\"},\"sourceIPAddress\":\"172.18.0.1\",\"additionalEventData\":{\"method\":\"OPTIONS\",\"status\":200,\"signature\":\"\",\"ttl\":2504744,\"workspace\":\"0c21a8bb-0e63-4cf1-8b98-7038e1f25468\",\"konghostname\":\"http://kong-gateway.com\"},\"recipientAccountId\":\"123456789\"}"),
 	}
 
 	auditEvent := ac.transformAuditEvent(ar, kongInfo, awsAccountId)
@@ -57,12 +58,12 @@ func TestTransformReturnNil(t *testing.T) {
 }
 
 func TestGetRecipientId(t *testing.T) {
-	arns := []string{
+	functionArns := []string{
 		"arn:aws:rds:us-east-2:123456789012:db:my-mysql-instance-1",
 		"arn:aws:::123456789012:db:my-mysql-instance-1",
 	}
 
-	for _, v := range arns {
+	for _, v := range functionArns {
 		output := createRecipientId(v)
 		assert.Equal(t, output, "123456789012")
 	}
@@ -126,14 +127,14 @@ func TestPutAuditLogs(t *testing.T) {
 		func(req *http.Request) (*http.Response, error) {
 
 			return httpmock.NewJsonResponse(200, map[string]interface{}{
-				"Failed":     []*cloudtraildataservice.ResultErrorEntry{},
-				"Successful": []*cloudtraildataservice.AuditEventResultEntry{},
+				"Failed":     []*cloudtraildata.ResultErrorEntry{},
+				"Successful": []*cloudtraildata.AuditEventResultEntry{},
 			})
 		},
 	)
 
 	ac := AWSClient{
-		Sess: session.Must(session.NewSession(aws.NewConfig().WithRegion("us-east-1"))),
+		Sess: session.Must(session.NewSession(aws.NewConfig().WithRegion("us-east-1").WithCredentials(credentials.AnonymousCredentials))),
 	}
 
 	httpmock.ActivateNonDefault(ac.Sess.Config.HTTPClient)
@@ -156,9 +157,9 @@ func TestPutAuditLogs(t *testing.T) {
 			},
 		},
 	}
-	arn := "arn:aws:rds:us-east-2:123456789012:db:my-mysql-instance-1"
-
-	err := ac.PutAuditLogs(&al, arn)
+	functionArn := "arn:aws:rds:us-east-2:123456789012:db:my-mysql-instance-1"
+	channelArn := "arn:aws:cloudtrail:useast1:12345678910:eventdatastore/EXAMPLEf852-4e8f-8bd1-bcf6cEXAMPLE"
+	err := ac.PutAuditLogs(&al, functionArn, channelArn)
 	assert.Nil(t, err)
 
 }
@@ -173,7 +174,7 @@ func TestPutAuditLogFail(t *testing.T) {
 	)
 
 	ac := AWSClient{
-		Sess: session.Must(session.NewSession(aws.NewConfig().WithRegion("us-east-1"))),
+		Sess: session.Must(session.NewSession(aws.NewConfig().WithRegion("us-east-1").WithCredentials(credentials.AnonymousCredentials))),
 	}
 
 	httpmock.ActivateNonDefault(ac.Sess.Config.HTTPClient)
@@ -196,16 +197,16 @@ func TestPutAuditLogFail(t *testing.T) {
 			},
 		},
 	}
-	arn := "arn:aws:rds:us-east-2:123456789012:db:my-mysql-instance-1"
-
-	err := ac.PutAuditLogs(&al, arn)
+	functionArn := "arn:aws:rds:us-east-2:123456789012:db:my-mysql-instance-1"
+	channelArn := "arn:aws:cloudtrail:useast1:12345678910:eventdatastore/EXAMPLEf852-4e8f-8bd1-bcf6cEXAMPLE"
+	err := ac.PutAuditLogs(&al, functionArn, channelArn)
 	assert.NotNil(t, err)
 }
 
 func testPutAuditLogsFail200(t *testing.T) {
 	httpmock.Activate()
 	defer httpmock.DeactivateAndReset()
-	fOutput := []*cloudtraildataservice.ResultErrorEntry{
+	fOutput := []*cloudtraildata.ResultErrorEntry{
 		{
 			ErrorCode:    aws.String("403"),
 			ErrorMessage: aws.String("request id failure"),
@@ -217,13 +218,13 @@ func testPutAuditLogsFail200(t *testing.T) {
 
 			return httpmock.NewJsonResponse(200, map[string]interface{}{
 				"Failed":     fOutput,
-				"Successful": []*cloudtraildataservice.AuditEventResultEntry{},
+				"Successful": []*cloudtraildata.AuditEventResultEntry{},
 			})
 		},
 	)
 
 	ac := AWSClient{
-		Sess: session.Must(session.NewSession(aws.NewConfig().WithRegion("us-east-1"))),
+		Sess: session.Must(session.NewSession(aws.NewConfig().WithRegion("us-east-1").WithCredentials(credentials.AnonymousCredentials))),
 	}
 
 	httpmock.ActivateNonDefault(ac.Sess.Config.HTTPClient)
@@ -246,9 +247,10 @@ func testPutAuditLogsFail200(t *testing.T) {
 			},
 		},
 	}
-	arn := "arn:aws:rds:us-east-2:123456789012:db:my-mysql-instance-1"
+	functionArn := "arn:aws:rds:us-east-2:123456789012:db:my-mysql-instance-1"
+	channelArn := "arn:aws:cloudtrail:useast1:12345678910:eventdatastore/EXAMPLEf852-4e8f-8bd1-bcf6cEXAMPLE"
 
-	err := ac.PutAuditLogs(&al, arn)
+	err := ac.PutAuditLogs(&al, functionArn, channelArn)
 	assert.NotNil(t, err)
 	assert.Equal(t, err.Error(), "failed requests submitting to cloudtrails")
 }

@@ -8,15 +8,19 @@ import (
 )
 
 type KConfig struct {
-	awsArn           string
+	FUNCTIONAL_ARN string
+	CHANNEL_ARN    string
+	AWS_REGION     string
+
 	KONG_ADMIN_API   string
 	KONG_SUPERADMIN  string
 	KONG_ADMIN_TOKEN string
-	REDIS_DB         int
-	REDIS_HOST       string
-	REDIS_USERNAME   string
-	REDIS_PASSWORD   string
-	AWS_REGION       string
+	KONG_ROOT_CA     string
+
+	REDIS_DB       int
+	REDIS_HOST     string
+	REDIS_USERNAME string
+	REDIS_PASSWORD string
 }
 
 type Controller struct {
@@ -31,8 +35,10 @@ func InitController() *Controller {
 	kAdminApi := utils.GetEnv("KONG_ADMIN_API", "http://localhost:8001")
 	kSuperAdmin := utils.GetEnv("KONG_SUPERADMIN", "false")
 	kongAdminToken := utils.GetEnv("KONG_ADMIN_TOKEN", "")
+	kong_root_ca := utils.GetEnv("KONG_ROOT_CA", "")
 
-	awsR := utils.GetEnv("REGION", "us-east-1")
+	awsRegion := utils.GetEnv("REGION", "us-east-1")
+	channelArn := utils.GetEnv("CHANNEL_ARN", "")
 
 	rHost := utils.GetEnv("REDIS_HOST", "localhost:6379")
 	rUser := utils.GetEnv("REDIS_USERNAME", "")
@@ -40,8 +46,8 @@ func InitController() *Controller {
 	rDb := utils.GetEnvInt("REDIS_DB", 0)
 
 	return &Controller{
-		KC: kongClient.NewRestClient(kAdminApi, kSuperAdmin, kongAdminToken),
-		AC: awsClient.New(awsR),
+		KC: kongClient.NewRestClient(kAdminApi, kSuperAdmin, kongAdminToken, kong_root_ca),
+		AC: awsClient.New(awsRegion),
 		KR: database.New(rHost, rUser, rPass, rDb),
 		Kconfig: KConfig{
 			KONG_ADMIN_API:   kAdminApi,
@@ -51,15 +57,20 @@ func InitController() *Controller {
 			REDIS_USERNAME:   rUser,
 			REDIS_PASSWORD:   rPass,
 			REDIS_DB:         rDb,
-			AWS_REGION:       awsR,
+			AWS_REGION:       awsRegion,
+			CHANNEL_ARN:      channelArn,
 		},
 	}
 }
 
-func (c *Controller) SetAwsARN(arn string) {
-	c.Kconfig.awsArn = arn
+func (c *Controller) SetAwsARN(functionalArn string) {
+	c.Kconfig.FUNCTIONAL_ARN = functionalArn
 }
 
-func (c *Controller) GetAWsARN() string {
-	return c.Kconfig.awsArn
+func (c *Controller) GetFuncArn() string {
+	return c.Kconfig.FUNCTIONAL_ARN
+}
+
+func (c *Controller) GetChannelArn() string {
+	return c.Kconfig.CHANNEL_ARN
 }

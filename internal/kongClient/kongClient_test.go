@@ -18,7 +18,7 @@ func TestCallAuditLogSuccess(t *testing.T) {
 	httpmock.RegisterResponder("GET", "http://gateway:8001/audit/requests",
 		httpmock.NewStringResponder(200, `{"Data":[{"client_ip":"172.18.0.1","request_id":"0bAf1b0nfOZsMSEByhhgn8FHdra7DjRp","request_timestamp":"","ttl":2504744,"signature":"","rbac_user_id":"","workspace":"0c21a8bb-0e63-4cf1-8b98-7038e1f25468","payload":"","path":"/auth?session_logout=true","method":"OPTIONS","status":200,"removed_from_payload":""}]}`))
 
-	kc := NewRestClient("http://gateway:8001", "true", "test")
+	kc := NewRestClient("http://gateway:8001", "true", "test", "")
 	httpmock.ActivateNonDefault(kc.client.GetClient())
 
 	expected := model.AuditLogs{
@@ -58,7 +58,7 @@ func TestCallAuditLogFail(t *testing.T) {
 			return nil, errors.New("internal server error")
 		})
 
-	kc := NewRestClient("http://gateway:8001", "true", "test")
+	kc := NewRestClient("http://gateway:8001", "true", "test", "")
 	httpmock.ActivateNonDefault(kc.client.GetClient())
 
 	auditLogs, requestIds, err := kc.CallAuditLog("")
@@ -71,14 +71,14 @@ func TestCallAuditLogFail(t *testing.T) {
 
 func TestSuperAdminHeader(t *testing.T) {
 
-	kc := NewRestClient("http://gateway:8001", "true", "test")
+	kc := NewRestClient("http://gateway:8001", "true", "test", "")
 	expected := "test"
 	actual := kc.client.Header.Get("Kong-Admin-Token")
 	assert.Equal(t, actual, expected)
 }
 
 func TestNoAdminHeader(t *testing.T) {
-	kc := NewRestClient("http://gateway:8001", "false", "")
+	kc := NewRestClient("http://gateway:8001", "false", "", "")
 	expected := ""
 	actual := kc.client.Header.Get("Kong-Admin-Token")
 	assert.Equal(t, actual, expected)
@@ -96,7 +96,7 @@ func TestOffsetQueryParam(t *testing.T) {
 	httpmock.RegisterResponder("GET", `=~^http://gateway:8001/audit/requests(\?offset=\w+)\z`,
 		httpmock.NewStringResponder(200, `{"Data":[{"client_ip":"172.18.0.1","request_id":"0bAf1b0nfOZsMSEByhhgn8FHdra7DjRp","request_timestamp":"","ttl":2504744,"signature":"","rbac_user_id":"","workspace":"0c21a8bb-0e63-4cf1-8b98-7038e1f25468","payload":"","path":"/auth?session_logout=true","method":"OPTIONS","status":200,"removed_from_payload":""}]}`))
 
-	kc := NewRestClient("http://gateway:8001", "true", "test")
+	kc := NewRestClient("http://gateway:8001", "true", "test", "")
 	httpmock.ActivateNonDefault(kc.client.GetClient())
 
 	for _, v := range offsets {

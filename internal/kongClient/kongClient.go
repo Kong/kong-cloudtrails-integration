@@ -17,18 +17,21 @@ type KongRestClient struct {
 	client *resty.Client
 }
 
-func NewRestClient(baseUrl string, superAdmin string, superAdminToken string) *KongRestClient {
+func NewRestClient(baseUrl string, superAdmin string, superAdminToken string, rootCA string) *KongRestClient {
 
 	kc := KongRestClient{
 		client: resty.New().SetBaseURL(strings.ToLower(baseUrl)).
-			SetHeader("Accept", "application/json").
-			SetQueryParam("size", "100"),
+			SetHeader("Accept", "application/json"),
 	}
 
 	admin, _ := strconv.ParseBool(superAdmin)
 
 	if admin {
 		kc.client.SetHeader("Kong-Admin-Token", superAdminToken)
+	}
+
+	if rootCA != "" {
+		kc.client.SetRootCertificateFromString(rootCA)
 	}
 
 	return &kc
@@ -42,6 +45,8 @@ func (kc *KongRestClient) CallAuditLog(offset string) (*model.AuditLogs, []strin
 		Logs: make(map[string]model.AuditRequest),
 	}
 
+	kc.client.QueryParam.Set("size", "100")
+
 	if offset != "" {
 		kc.client.QueryParam.Set("offset", offset)
 	} else {
@@ -49,6 +54,8 @@ func (kc *KongRestClient) CallAuditLog(offset string) (*model.AuditLogs, []strin
 	}
 
 	resp, err := kc.client.R().Get("/audit/requests")
+
+	kc.client.QueryParam.Del("size")
 
 	if err != nil {
 		log.Error("En error occured calling Kong Admin ApI", err)
