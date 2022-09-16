@@ -1,5 +1,6 @@
 kong-cloudtrails-integration
 aws-sdk-go@v0.0.0-unpublished
+aws-sdk-go@v0.1.0-unpublished
 .vscode/
 *.pdf
 .terraform
@@ -9,3 +10,4 @@ terraform.tfstate
 terraform.tfstate.backup
 terraform.tfvars
 plan
+
