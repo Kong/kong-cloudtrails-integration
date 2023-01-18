@@ -13,13 +13,15 @@ Kong Gateway supports Audit Logs as an Enterprise Feature. When enabled on the G
 
 For the Kong integration with the CloudTrail Lake,an AWS Lambda function in combination with AWS ElastiCache-Redis are deployed into existing VPC where the Kong Global Control Plane resides. The lambda function will strictly call the /audit/requests endpoint, process and remove duplicate entries by evaluating existing keys in Redis before transforming and submitting the audit log entries to cloudtrails. Each request_id retrieved from Kong comes with a defined TTL. All new entries are validated against Redis, and similiary any new entries are submitted to Redis. Finally, AWS CloudWatch is used to schedule the lambda function so that it will process audit logs on an hourly schedule.
 
+This integration will incur an additional costs. For more details to approximate the addtional cost per hour, please review the AWS documentation [AWS ElastiCache][elasticache] and AWS [Lambda Pricing][lambda].
+
 ## Getting Started
 
 ### Requirements
 
 There are 3 major steps to have kong audit logs publish to CloudTrail Lake with this project:
 
-1. Have created an AWS Channel to CloudTrail and can provide the Channel ARN.
+1. Have created a Channel to CloudTrail and can provide the Channel ARN.
 
 2. Enable and configure audit logs on the Kong Global Control Plane.
 
@@ -43,7 +45,7 @@ The reload or restart kong gateway for the gateway to detect the new config chan
 
 **Step 2** - Optional, configuration of audit/request entries generated:
 
-There are 2 configurations available: ignore certain rest api methods, and ignore paths. Again these should be added to the kong.conf or as an environment variable:
+There are 2 configurations available: ignore certain rest API methods, and ignore paths. Again these should be added to the kong.conf or as an environment variable:
 
 ```shell
 audit_log_ignore_methods = GET,OPTIONS
@@ -54,7 +56,9 @@ More details can be found on [Kong Gateway - Admin API Audit Log][audit_log]
 
 ### Deploy AWS Infrastructure - Terraform
 
-A terraform script with the belwos version requirements is provided that will create the required AWS infrastructure in an existing vpc where the Kong Global Control Plane resides.
+A terraform script provided is to create the AWS infrastructure in an existing VPC where the Kong Global Control Plane resides.
+
+The terraform script has the following version requirements:
 
 #### Requirements
 
@@ -69,29 +73,27 @@ A terraform script with the belwos version requirements is provided that will cr
 |------|---------|
 | <a name="provider_aws"></a> [aws](#provider\_aws) | ~> 4.19.0 |
 
-#### Prequisites
+#### Prerequisites
 
 The `prerequisites` for the terraform script are:
 
-1. Provide an existing VPC, and Kong Gateway running in the existing vpc.
+1. **Existing VPC** - provide the existing VPC where Kong Gateway is running.
 
-2. At least 2 subnets ids in the VPC - to support elasticache.
+2. **Two subnets ids** - provide ast least 2 subnet ids in the VPC for elasticache support.
 
-3. Have all env variables to connect to Kong Gateway and CloudTrail event data store: Channel ARN, Kong Gateway URL, certificates, and Admin Token (if required).
+3. **Have all ENV variables** to connect to Kong Gateway and the CloudTrail event data store: Channel ARN, Kong Gateway URL, certificates, and Admin Token (if required).
 
 The following resources will be created in the VPC:
 
-* Redis ElastiCache - 2 Node (primary and replica), Multi-AZ Enabled, Auto-failure Enabled, Cluster mode off and hosted in the provided VPC.
+* **Redis ElastiCache** - 2 Node (primary and replica), Multi-AZ Enabled, Auto-failure Enabled, Cluster mode off and hosted in the provided VPC.
 
-* Security Group for the lambda function to access resources in the vpc.
+* **Security Group** for the lambda function to access resources in the vpc.
 
-* Role and Policy  for the lambda function.
+* **IAM Role and Policy** for the lambda function.
 
-* Lambda Function - with the role/policies, security group, image, the environment variables configured and hosted in the provided VPC.
+* **Lambda Function** - with the role/policies, security group, image, the environment variables configured and hosted in the provided VPC.
 
-* CloudWatch to schedule the lambda function on an 1 hr job.
-
-* CloudTrails Event Store - created in the appropriate region.
+* **CloudWatch Event** to schedule the lambda function on an 1 hr job.
 
 #### Terraform Variables
 
@@ -103,14 +105,15 @@ The following resources will be created in the VPC:
 | existing_vpc                | Name of Existing VPC to deploy resources into                                                                                                  | string       |                                            |
 | existing_subnet_ids         | List of Existing Subnet Ids to deploy resources into                                                                                           | list(string) |                                            |
 | security_group              | Name of the Security Group that will be created in the VPC to support the lamba function                                                       | string       |                                            |
-| lambda_env                  | Environment Variable to Assign the Lamba Function  - More details [Lambda Environment Variables](#lambda-environment-variables) section below. | object       |                                            |
+| lambda_env                  | Object that assigns all defined ENVS to the lambda function.                                                                                   | object       |                                            |
 | lambda_env.KONG_ADMIN_API   | URL to the Kong Gateway Admin API                                                                                                              | string       |                                            |
-| lambda_env.KONG_SUPERADMIN  | Define if a superadmin token is needed to call Kong Admin API                                                                | bool         |                                            |
-| lambda_env.KONG_ADMIN_TOKEN | The Kong super user admin token                                                                                                           | string       |                                            |
-| lambda_env.KONG_ROOT_CA     | Required if a Custom CA is configured on the Kong Admin API. If not required null can be used                                     | string       |                                            |
+| lambda_env.KONG_SUPERADMIN  | Define if a superadmin token is needed to call Kong Admin API                                                                                  | bool         |                                            |
+| lambda_env.KONG_ADMIN_TOKEN | The Kong super user admin token                                                                                                                | string       |                                            |
+| lambda_env.KONG_ROOT_CA     | Required if a Custom CA is configured on the Kong Admin API. If not required null can be used                                                  | string       |                                            |
 | lambda_env.REDIS_DB         | Recommend define as 0                                                                                                                          | string       |                                            |
-| image                       | URL to Kong CloudTrails Image, kong/cloudtrails-integration is available in dockerhub.                                                                                                                 | string       |                             |
-
+| lambda_env.CHANNEL_ARN      | Channel Arn provided by the AWS Cloud Trail Integration                                                                                        | string       |                                            |
+| image                       | URL to Kong CloudTrails Image, kong/cloudtrails-integration is available in dockerhub.                                                         | string       |                                            |
+| channel_arn                 | Channel Arn provided by the AWS Cloud Trail Integration                                                                                        | string       |                                            |
 
 **Note:** More details on the Lambda Env Configuration in [Lambda Environment Variables](#lambda-environment-variables) section below.
 
@@ -129,9 +132,11 @@ lambda_env = {
   REDIS_DB         = 0
   CHANNEL_ARN     = "arn:aws:cloudtrail:us-east-1:123456789651:channel/07441ab6-c4a1-4c8a-943d-a2f0c50c8a76"
 }
+channel_arn = "arn:aws:cloudtrail:us-east-1:123456789651:channel/07441ab6-c4a1-4c8a-943d-a2f0c50c8a76"
 
 image         = "kong/cloudtrails-integration:1.0.0"
 resource_name = "kong-ct-integration"
+
 ```
 
 #### Deployment
@@ -177,7 +182,7 @@ The list of environment variables that can be configured on the lamba function i
 | KONG_ROOT_CA     | Root CA that matches the certificate configured on the Kong Admin API      | string  | no                          |                       | disabled                                                                             | yes |
 | REDIS_DB         | Redis Database Index                                  | string  | no                          | 0                     | 0                                                                                    | yes                                                                                                                            |
 | REDIS_HOST       | url:port to redis                                     | string  | yes                         | localhost:6379        | redis-url:6379                                                                       | no - populated by terraform when elasticache is created                                                                |
-| CHANNEL_ARN      | channel_arn provided by AWS to ingest events          | string  | yes                         |                       | arn:aws:cloudtrail:us-east1:01234567890:channel/EXAMPLE8-0558-4f7e-a06a-43969EXAMPLE | yes                                                                                                                            |
+| CHANNEL_ARN      | channel_arn provided by AWS to ingest events          | string  | yes                         |                       | arn:aws:cloudtrail:us-east-1:123456789651:channel/07441ab6-c4a1-4c8a-943d-a2f0c50c8a76 | yes                                                                                                                            |
 
 ## Overview of Event Data Audit Entry Published to AWS CloudTrails
 
@@ -230,6 +235,10 @@ For information on local development, please navigate to [Developer Walkthrough]
 ## References
 
 [Kong Gateway - Admin API Audit Log][audit_log]
+[AWS ElastiCache - Pricing][elasticache]
+[AWS Lambda - Pricing][lambda]
 
 <!---links-->
 [audit_log]:https://docs.konghq.com/gateway/latest/admin-api/audit-log/#main
+[elasticache]:https://aws.amazon.com/elasticache/pricing/
+[lambda]:[https://aws.amazon.com/lambda/pricing/]
