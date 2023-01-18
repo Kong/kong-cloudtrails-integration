@@ -9,23 +9,23 @@
 
 ![Kong Cloudtrails Reference Architecture](/assets/img/referenceArchitecture.png)
 
-Kong Gateway supports Audit Logs as an Enterprise Feature. When enabled on the Global Control Plane, every api request called to the Kong admin API and DAO object created, updated, or deleted in the Kong database with relevant data including RBAC, Workspace, and a TTL for the entry. These audit log entries, in turn, are retrievable via endpoints on the Kong admin api: /audit/requests, and /audit/objects.
+Kong Gateway supports Audit Logs as an Enterprise Feature. When enabled on the Global Control Plane, every request made to the Admin API and any DAO object created, updated, or deleted in the Kong database with relevant data is stored in Kong's audit system with the relevant RBAC, Workspace, and a TTL for each entry. These audit log entries, in turn, are retrievable via the Kong Admin API: /audit/requests, and /audit/objects.
 
-For the Kong integration with the CloudTrail Lake,an AWS Lambda function in combination with AWS ElastiCache-Redis are deployed into existing VPC where the Kong Global Control Plane resides. The lambda function will strictly call the /audit/requests endpoint, process and remove duplicate entries by evaluating existing keys in Redis before transforming and submitting the audit log entries to cloudtrails. Each request_id retrieved from Kong comes with a defined TTL. All new entries are validated against Redis, and similiary any new entries are submitted to Redis. Finally, AWS CloudWatch is used to schedule the lambda function so that it will process audit logs on an hourly schedule.
+For the Kong Enterprise integration with the CloudTrail Lake, an AWS Lambda function in combination with AWS ElastiCache-Redis are deployed into existing VPC where the Kong Global Control Plane resides. The lambda function will strictly call the /audit/requests endpoint, process and remove duplicate entries by evaluating existing keys in Redis before transforming and submitting the audit log entries to cloudtrails. Each request_id retrieved from Kong comes with a defined TTL used in Redis. All new entries are validated against Redis, and similiary any new entries are submitted to Redis. Finally, AWS CloudWatch is used to schedule the lambda function so that it will process audit logs hourly.
 
-This integration will incur an additional costs. For more details to approximate the addtional cost per hour, please review the AWS documentation [AWS ElastiCache][elasticache] and AWS [Lambda Pricing][lambda].
+This integration will incur an additional AWS infrastructure costs. For more details to approximate the addtional cost per hour, please review the AWS documentation [AWS ElastiCache][elasticache] and AWS [Lambda Pricing][lambda].
 
 ## Getting Started
 
 ### Requirements
 
-There are 3 major steps to have kong audit logs publish to CloudTrail Lake with this project:
+There are 3 major steps to have Kong audit logs publish to CloudTrail Lake with this project:
 
-1. Have created a Channel to CloudTrail and can provide the Channel ARN.
+1. Have created a Channel ARN to CloudTrail event store and can provide the Channel ARN.
 
 2. Enable and configure audit logs on the Kong Global Control Plane.
 
-3. Terraform - to deploy the AWS Infrastructure. This terraform has been validated on Terraform v1.2.3 and aws provider 4.19.0.
+3. Terraform - to deploy the AWS Infrastructure. (The terraform has been validated on Terraform v1.2.3 and aws provider 4.19.0)
 
 ### How to Enable Audit Logging on the Kong Global Control Plane
 
@@ -45,7 +45,7 @@ The reload or restart kong gateway for the gateway to detect the new config chan
 
 **Step 2** - Optional, configuration of audit/request entries generated:
 
-There are 2 configurations available: ignore certain rest API methods, and ignore paths. Again these should be added to the kong.conf or as an environment variable:
+There are 2 configurations available: ignore certain rest API methods, and ignore paths. These should be added to the kong.conf or as an environment variable:
 
 ```shell
 audit_log_ignore_methods = GET,OPTIONS
@@ -56,7 +56,7 @@ More details can be found on [Kong Gateway - Admin API Audit Log][audit_log]
 
 ### Deploy AWS Infrastructure - Terraform
 
-A terraform script provided is to create the AWS infrastructure in an existing VPC where the Kong Global Control Plane resides.
+The terraform script provided is to create the additional AWS infrastructure in an existing VPC where the Kong Global Control Plane resides.
 
 The terraform script has the following version requirements:
 
@@ -79,7 +79,7 @@ The `prerequisites` for the terraform script are:
 
 1. **Existing VPC** - provide the existing VPC where Kong Gateway is running.
 
-2. **Two subnets ids** - provide ast least 2 subnet ids in the VPC for elasticache support.
+2. **Two subnets IDs** - provide ast least 2 subnet IDs in the VPC for elasticache support.
 
 3. **Have all ENV variables** to connect to Kong Gateway and the CloudTrail event data store: Channel ARN, Kong Gateway URL, certificates, and Admin Token (if required).
 
