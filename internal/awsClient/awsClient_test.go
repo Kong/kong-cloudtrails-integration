@@ -40,7 +40,7 @@ func TestTransformAuditEvent(t *testing.T) {
 
 	expected := &cloudtraildata.AuditEvent{
 		Id:        aws.String("0bAf1b0nfOZsMSEByhhgn8FHdra7DjRp"),
-		EventData: aws.String("{\"version\":\"2.8.1.1-enterprise-edition\",\"userIdentity\":{\"type\":\"\",\"principalId\":\"anonymous\",\"details\":{\"RBAC\":\"Anonymous User on Kong Gateway: Please Enable RBAC on Kong Gateway\"}},\"eventSource\":\"KongGatewayEnterprise\",\"eventName\":\"OPTIONSauth\",\"eventTime\":\"2022-06-13T12:25:34Z\",\"UID\":\"0bAf1b0nfOZsMSEByhhgn8FHdra7DjRp\",\"requestParameters\":{\"queryParameters\":\"session_logout=true\"},\"sourceIPAddress\":\"172.18.0.1\",\"additionalEventData\":{\"method\":\"OPTIONS\",\"status\":200,\"signature\":\"\",\"ttl\":2504744,\"workspace\":\"0c21a8bb-0e63-4cf1-8b98-7038e1f25468\",\"konghostname\":\"http://kong-gateway.com\"},\"recipientAccountId\":\"123456789\"}"),
+		EventData: aws.String("{\"version\":\"2.8.1.1-enterprise-edition\",\"userIdentity\":{\"type\":\"\",\"principalId\":\"anonymous\",\"details\":{\"RBAC\":\"Anonymous User on Kong Gateway: Please Enable RBAC on Kong Gateway\"}},\"eventSource\":\"kong-gateway\",\"eventName\":\"OPTIONSauth\",\"eventTime\":\"2022-06-13T12:25:34Z\",\"UID\":\"0bAf1b0nfOZsMSEByhhgn8FHdra7DjRp\",\"requestParameters\":{\"queryParameters\":\"session_logout=true\"},\"sourceIPAddress\":\"172.18.0.1\",\"additionalEventData\":{\"method\":\"OPTIONS\",\"status\":200,\"signature\":\"\",\"ttl\":2504744,\"workspace\":\"0c21a8bb-0e63-4cf1-8b98-7038e1f25468\",\"konghostname\":\"http://kong-gateway.com\"},\"recipientAccountId\":\"123456789\"}"),
 	}
 
 	auditEvent := ac.transformAuditEvent(ar, kongInfo, awsAccountId)

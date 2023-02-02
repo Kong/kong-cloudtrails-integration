@@ -32,6 +32,11 @@ variable "security_group" {
   type        = string
 }
 
+variable "channel_arn" {
+  description = ""
+  type = string
+}
+
 variable "lambda_env" {
   description = "Environment Variable to Assign the Lamba Function"
   type = object({

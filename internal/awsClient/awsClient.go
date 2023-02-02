@@ -87,7 +87,7 @@ func (ac *AWSClient) transformAuditEvent(ar *model.AuditRequest, kongInfo model.
 	eventData := model.EventData{
 		Version:            kongInfo.KongVersion,
 		UserIdentity:       ui,
-		EventSource:        "KongGatewayEnterprise",
+		EventSource:        "kong-gateway",
 		EventName:          eventName,
 		EventTime:          timestamp,
 		UID:                ar.Request_id,
