@@ -9,7 +9,7 @@
 
 ![Kong Cloudtrails Reference Architecture](/assets/img/referenceArchitecture.png)
 
-Kong Gateway supports Audit Logs as an Enterprise Feature. When enabled on the Global Control Plane, every request made to the Admin API and any DAO object created, updated, or deleted in the Kong database with relevant data is stored in Kong's audit system with the relevant RBAC, Workspace, and a TTL for each entry. These audit log entries, in turn, are retrievable via the Kong Admin API: /audit/requests, and /audit/objects.
+Kong Gateway supports Audit Logs as an Enterprise Feature. When enabled on the Global Control Plane, every request made to the Admin API and any DAO object created, updated, or deleted in the Kong database is stored in Kong's audit system with the relevant RBAC, Workspace, and a TTL for each entry. These audit log entries, in turn, are retrievable via the Kong Admin API: /audit/requests, and /audit/objects.
 
 For the Kong Enterprise integration with the CloudTrail Lake, an AWS Lambda function in combination with AWS ElastiCache-Redis are deployed into existing VPC where the Kong Global Control Plane resides. The lambda function will strictly call the /audit/requests endpoint, process and remove duplicate entries by evaluating existing keys in Redis before transforming and submitting the audit log entries to cloudtrails. Each request_id retrieved from Kong comes with a defined TTL used in Redis. All new entries are validated against Redis, and similiary any new entries are submitted to Redis. Finally, AWS CloudWatch is used to schedule the lambda function so that it will process audit logs hourly.
 

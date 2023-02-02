@@ -65,7 +65,7 @@ resource "aws_iam_role" "iam_role" {
         {
           "Effect" : "Allow",
           "Action" : "cloudtrail-data:PutAuditEvents",
-          "Resource" : "*"
+          "Resource" : "${var.channel_arn}"
         }
       ]
     })
