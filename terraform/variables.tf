@@ -53,6 +53,6 @@ variable "lambda_env" {
 variable "image" {
   description = "URL to Kong CloudTrails Image"
   type        = string
-  default     = "docker-hub-url"
+  default     = "kong/cloudtrail-integration:1.0.0"
 }
 
