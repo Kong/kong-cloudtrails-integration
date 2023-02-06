@@ -134,7 +134,7 @@ lambda_env = {
 }
 channel_arn = "arn:aws:cloudtrail:us-east-1:123456789651:channel/07441ab6-c4a1-4c8a-943d-a2f0c50c8a76"
 
-image         = "kong/cloudtrails-integration:1.0.0"
+image         = "kong/cloudtrail-integration:1.0.0"
 resource_name = "kong-ct-integration"
 
 ```

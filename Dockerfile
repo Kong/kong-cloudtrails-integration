@@ -13,7 +13,7 @@ RUN CGO_ENABLED=0 go test -v ./...
 
 RUN GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o ./out/kong-cloudtrails-integration .  
 
-FROM public.ecr.aws/lambda/go:1
+FROM public.ecr.aws/lambda/go:1.2023.02.03.11
 
 COPY --from=build_base /tmp/kong-cloudtrails-integration/out/kong-cloudtrails-integration ${LAMBDA_TASK_ROOT}
 
